@@ -2,7 +2,7 @@
 ## Overview
 The atbu.common package is used by the following projects:
 - [ATBU Backup & Persistent File Information](https://github.com/AshleyT3/atbu) utility package (atbu-pkg).
-- [ATBU Multiprocessing Pipeline](https://github.com/AshleyT3/atbu-mp-pipeline-pkg) package (atbu-mp-pipeline-pkg).
+- [ATBU Multiprocessing Pipeline](https://github.com/AshleyT3/atbu-mp-pipeline) package (atbu-mp-pipeline-pkg).
 
 Included is support for the following:
 - **AesCbcPaddingEncryptor** and **AesCbcPaddingDecryptor** for AES CBC encryption/decryption with padding, related buffering/retention taken care automatically.
