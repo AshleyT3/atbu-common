@@ -75,23 +75,3 @@ class HasherDefinitions:
 
     def get_primary_hashing_algo_name(self):
         return self.hash_classes[0][0].lower()
-
-
-class GlobalHasherDefinitions(HasherDefinitions, metaclass=Singleton):
-    _init_algos: list[str] = None
-
-    def __init__(self, algos: list[str] = None):
-        if self._init_algos:
-            if algos:
-                raise SingletonAlreadyCreated(
-                    "Access to singleton after initial creation must have no arguments."
-                )
-            return  # do not call base class __init__ after first-time init.
-        if not algos:
-            algos = [DEFAULT_HASH_ALGORITHM]
-        if not isinstance(algos, list):
-            raise ValueError(
-                f"GlobalHasherDefinitions: The algos argument must be a list of algorithms."
-            )
-        self._init_algos = algos
-        super().__init__(algos)

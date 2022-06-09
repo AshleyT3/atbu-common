@@ -22,8 +22,10 @@ from cryptography.hazmat.primitives.ciphers import (
     modes,
     CipherContext,
 )
-from .exception import AlreadyFinalizedError, EncryptionDecryptionFailure
-
+from .exception import (
+    AlreadyFinalizedError,
+    EncryptionDecryptionFailure,
+)
 
 class AES_CBC_Base(ABC):
     """The base for both the encryptor/decryptor. Provides common 'update' functionality."""
