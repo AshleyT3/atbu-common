@@ -18,6 +18,7 @@ r"""Utility/helper functions.
 
 import base64
 from enum import Enum
+import fnmatch
 from io import SEEK_END, SEEK_SET
 import io
 import os
@@ -25,7 +26,7 @@ from pathlib import Path
 import platform
 import random
 from shutil import copy2
-from typing import Union
+from typing import Iterator, Union
 from datetime import datetime, timezone
 
 from .exception import InvalidFunctionArgument
@@ -142,6 +143,48 @@ def is_absolute_path(path_to_dir: Union[str, Path]):
     original_path = os.path.normcase(path_to_dir.rstrip("\\/"))
     return converted_to_abs == original_path
 
+def iwalk_fnmatch(
+    root_no_wildcards: str,
+    fnmatch_pat: str
+) -> Iterator[str]:
+    """Walk `root_no_wildcards` and return all files matching `fnmatch_pat`.
+
+    Args:
+        root_no_wildcards (str): The root directory to search. This should not
+            contain any wildcards/patterns.
+        fnmatch_pat (str): An `fnmatch_path` style pattern. If this pattern
+            contains "**" the search is recursive, otherwise it searches only
+            the `root_no_wildcards` specified.
+
+    Yields:
+        Iterator[str]: An iterator of discovered file paths.
+    """
+    is_recursive = fnmatch_pat.find("**") != -1
+    fnmatch_pat = os.path.normcase(fnmatch_pat)
+    for root, _, files in os.walk(root_no_wildcards):
+        for file in files:
+            full_path = os.path.join(root, file)
+            if not fnmatch.fnmatchcase(name=os.path.normcase(full_path), pat=fnmatch_pat):
+                continue
+            yield full_path
+        if not is_recursive:
+            break
+
+def walk_fnmatch(
+    root_no_wildcards: str,
+    fnmatch_pat: str
+) -> list[str]:
+    """Walk `root_no_wildcards` and return all files matching `fnmatch_pat`.
+
+    Args:
+        root_no_wildcards (str): The root directory to search. This should not
+            contain any wildcards/patterns.
+        fnmatch_pat (str): An `fnmatch_path` style pattern.
+
+    Returns:
+        list[str]: A list of discovered file paths.
+    """
+    return list(iwalk_fnmatch(root_no_wildcards, fnmatch_pat))
 
 def truncate_posix_timestamp(posix_timestamp):
     """Return a POSIX timestamp with fractional portion that can be represented
