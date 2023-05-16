@@ -136,6 +136,13 @@ def convert_to_str_path(p):
     return p
 
 
+def pathlib_splitdrive(path: Union[str, Path]):
+    if not isinstance(path, (str, Path)):
+        raise ValueError(f"pathlib_splitdrive: path must be str or Path: {type(path)}")
+    path_drive, path_wo_drive = os.path.splitdrive(str(path))
+    return Path(path_drive), Path(path_wo_drive)
+
+
 def is_absolute_path(path_to_dir: Union[str, Path]):
     if isinstance(path_to_dir, Path):
         path_to_dir = str(path_to_dir)
