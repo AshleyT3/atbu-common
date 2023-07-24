@@ -25,6 +25,7 @@ import os
 from pathlib import Path
 import platform
 import random
+import re
 from shutil import copy2
 from typing import Iterator, Union
 from datetime import datetime, timezone
@@ -118,6 +119,66 @@ def deep_union_dicts(dest: dict, src: dict):
             # Overwrite existing d1 value.
             dest[src_k] = src_v
     return dest
+
+
+def get_path_sep_list():
+    return [os.path.sep] if os.path.altsep is None else [os.path.sep, os.path.altsep]
+
+
+def get_path_sep_re():
+    if os.path.altsep is None:
+        path_sep_re_group_pattern = rf"({re.escape(os.path.sep)})"
+    else:
+        path_sep_re_group_pattern = rf"({re.escape(os.path.sep)}|{re.escape(os.path.altsep)})"
+    return re.compile(path_sep_re_group_pattern)
+
+
+_PATH_SEP_RE = get_path_sep_re()
+
+
+def strip_leading_sep(path: str) -> str:
+    if path and path[0] in [os.sep, os.altsep]:
+        path = path[1:]
+    return path
+
+
+def rel_path(top_level_dir: str, path: str):
+    common_path = os.path.commonpath([os.path.normcase(top_level_dir), os.path.normcase(path)])
+    if common_path != os.path.normcase(top_level_dir):
+        raise ValueError(
+            f"The path must be a subdirectory of top_level_dir: "
+            f"top_level_dir={top_level_dir} path={path}"
+        )
+    rpath = path[len(top_level_dir) :]
+    return strip_leading_sep(rpath)
+
+
+def strip_common_path(path1: str, path2: str) -> tuple[str, str]:
+    common_path = os.path.normcase(os.path.commonpath([path1, path2]))
+    if not common_path:
+        raise ValueError("Paths have no common path.")
+    path1 = strip_leading_sep(path1[len(common_path):])
+    path2 = strip_leading_sep(path2[len(common_path):])
+    return path1, path2
+
+
+def get_subdir_distance(path1: str, path2: str) -> int:
+    if len(path1)==0 and len(path2)==0:
+        return 0
+    try:
+        path1, path2 = strip_common_path(path1, path2)
+    except ValueError:
+        if path1 and path2:
+            return -1
+    if len(path1) >= len(path2):
+        subdir_part = path1[len(path2):]
+    else:
+        subdir_part = path2[len(path1):]
+    subdir_part = strip_leading_sep(subdir_part)
+    if not subdir_part:
+        return 0
+    num_seps = len(_PATH_SEP_RE.findall(subdir_part))
+    return num_seps + 1
 
 
 def convert_to_pathlib_path(p):
