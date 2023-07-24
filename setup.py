@@ -21,7 +21,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setuptools.setup(
     name="atbu-common-pkg",
-    version="0.0.6",
+    version="0.0.7",
     author="Ashley R. Thomas",
     author_email="ashley.r.thomas.701@gmail.com",
     description= (
