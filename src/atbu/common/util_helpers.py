@@ -308,7 +308,7 @@ def clear_file(fileobj: Union[io.IOBase, str, Path], byte_pattern: list[int] = N
     if isinstance(fileobj, str):
         fileobj = Path(fileobj)
     if isinstance(fileobj, Path):
-        fileobj = fileobj.open("w+b")
+        fileobj = fileobj.open("r+b")
     if not isinstance(fileobj, io.IOBase):
         raise InvalidFunctionArgument(
             f"Expecting io.IOBase derived fileobj, str path, or Path object."
