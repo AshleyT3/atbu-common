@@ -14,14 +14,18 @@
 r"""Support json encoding/decoding of multiple classes via use of single
 instance of MultiEncoderDecoder.
 """
-import json
 from typing import Callable
+import json
+import dataclasses
 
 
 class MultiEncoderDecoder:
     """An instance of MultiEncoderDecoder can json encode/decode one or more
     classes. Call add_def() to inform this instance of each such class.
     """
+
+    # pylint: disable=missing-class-docstring
+    # pylint: disable=protected-access
 
     class Definition:
         def __init__(
@@ -67,7 +71,7 @@ class MultiEncoderDecoder:
             owner = self
 
             def default(self, o):
-                d = CustomEncoder.owner._default(o)  # pylint: disable=protected-access
+                d = CustomEncoder.owner._default(o) 
                 if not d:
                     return json.JSONEncoder.default(self, o)
                 return d
@@ -79,18 +83,22 @@ class MultiEncoderDecoder:
         accepting a decoder.
         """
 
+        # pylint: disable=missing-class-docstring
+        # pylint: disable=protected-access
+        # pylint: disable=method-hidden
+
         class CustomDecoder(json.JSONDecoder):
             owner = self
 
             def __init__(self, *args, **kwargs):
                 json.JSONDecoder.__init__(
-                    self, object_hook=self.object_hook, *args, **kwargs
+                    self, object_hook=self._obj_hook_func, *args, **kwargs
                 )
 
-            def object_hook(self, obj):  # pylint: disable=method-hidden,no-self-use
-                return CustomDecoder.owner._object_hook(
+            def _obj_hook_func(self, obj):
+                return CustomDecoder.owner._owner_obj_hook_func(
                     obj
-                )  # pylint: disable=protected-access
+                )
 
         return CustomDecoder
 
@@ -104,7 +112,7 @@ class MultiEncoderDecoder:
                 return v
         return None
 
-    def _object_hook(self, obj):
+    def _owner_obj_hook_func(self, obj):
         if "_type" not in obj:
             return obj
         obj_type_str = obj["_type"]
@@ -116,3 +124,78 @@ class MultiEncoderDecoder:
                 enc_dec_def.from_dict_method(o, obj)
                 return o
         return obj
+
+
+def create_dataclass_json_encoder(data_cls, is_strict: bool = True) -> json.JSONEncoder:
+    """Create a json.JSONEncoder to handle serialization of a dataclass data_cls.
+    This is useful for simple cases where a single dataclass is serialized as
+    a single instance, or multiple instances in an list.
+
+    Args:
+        data_cls (dataclass): A user-defined dataclass.
+        is_strict (bool, optional): If True, an a TypeError is raised if the encoder
+            is asked to encode anything other than data_cls. Defaults to True.
+
+    Raises:
+        ValueError: If the specified data_cls is not a dataclass.
+        TypeError: If, during encoding, the object tp encode is not an instance of data_cls.
+
+    Returns:
+        json.JSONEncoder: The encoder to encode the data_cls instances.
+    """
+    if not dataclasses.is_dataclass(data_cls):
+        raise ValueError(f"Not a dataclass: cls={data_cls}")
+    class Encoder(json.JSONEncoder): # pylint: disable=missing-class-docstring
+        def default(self, o):
+            if not isinstance(o, data_cls):
+                if is_strict:
+                    raise TypeError(
+                        f"cannot identify dataclass for encoding: "
+                        f"The obj ({o}) does not appear to be data_cls ({data_cls})"
+                    )
+                return json.JSONEncoder.default(self, o)
+            obj_dict = { "_type" : data_cls.__name__}
+            obj_dict.update(dataclasses.asdict(o))
+            return obj_dict
+    return Encoder
+
+
+def create_dataclass_json_decoder(data_cls, is_strict: bool = True) -> json.JSONDecoder:
+    """Create a json.JSONDecoder to handle deserialization of serialized data_cls
+    instances.
+
+    Args:
+        data_cls (dataclass): A user-defined dataclass.
+        is_strict (bool, optional): If True, an a TypeError is raised if the encoder
+            is asked to decode anything other than data_cls. Defaults to True.
+
+    Raises:
+        ValueError: If the specified data_cls is not a dataclass.
+        TypeError: If, during decoding, the object to decode is not an instance of data_cls.
+
+    Returns:
+        json.JSONDecoder: The decoder to decode the data_cls instances.
+    """
+
+    # pylint: disable=missing-class-docstring
+    # pylint: disable=missing-function-docstring
+
+    if not dataclasses.is_dataclass(data_cls):
+        raise ValueError(f"Not a dataclass: cls={data_cls}")
+    class Decoder(json.JSONDecoder):
+        def __init__(self, *args, **kwargs):
+            json.JSONDecoder.__init__(self, object_hook=self.obj_hook_func, *args, **kwargs)
+        def obj_hook_func(self, obj):
+            if "_type" not in obj or obj["_type"] != data_cls.__name__:
+                if is_strict:
+                    raise TypeError(
+                        f"cannot identify dataclass for deocding: "
+                        f"The dict ({obj}) does not appear to be data_cls ({data_cls})"
+                    )
+                return obj
+            args = {}
+            for field in dataclasses.fields(data_cls):
+                if field.name in obj:
+                    args[field.name] = obj[field.name]
+            return data_cls(**args)
+    return Decoder
