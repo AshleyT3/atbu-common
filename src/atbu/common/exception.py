@@ -238,6 +238,11 @@ class InvalidBase64StringError(AtbuException):
         super().__init__(message=message, cause=cause)
 
 
+class LockError(AtbuException):
+    def __init__(self, message: str = None, cause=None):
+        super().__init__(message=message, cause=cause)
+
+
 def exc_to_string(ex: Exception):
     return f"ex={ex} details: {traceback.format_exception(ex, ex, ex.__traceback__)}"
 
